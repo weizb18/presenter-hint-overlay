@@ -1,0 +1,16 @@
+{
+  "name": "presenter-hint-overlay",
+  "version": "0.0.1",
+  "private": true,
+  "description": "M0 validation harness: a plain Electron window that loads a Google Doc in a never-authenticated session and reports whether the realtime channel is live.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:nothrottle": "M0_NO_THROTTLE=1 electron .",
+    "test": "node --test",
+    "overlay": "electron overlay.js"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0"
+  }
+}

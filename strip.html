@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    --bg: #16181d;
+    --fg: #e6e8ec;
+    --dim: #8b919c;
+    --line: #2a2e36;
+    --ok: #3fb950;
+    --bad: #f85149;
+    --warn: #d29922;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--fg);
+    font: 13px/1.4 -apple-system, "Helvetica Neue", "PingFang SC", sans-serif;
+    user-select: none;
+  }
+  .wrap { padding: 8px 12px; display: flex; flex-direction: column; gap: 7px; height: 100%; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  input {
+    flex: 1; min-width: 0;
+    background: #0e1014; color: var(--fg);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 9px; font: inherit; user-select: text;
+  }
+  input:focus { outline: none; border-color: #4b5563; }
+  button {
+    background: #22262e; color: var(--fg);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #2c313a; }
+  .stats { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--dim); }
+  .stat b { color: var(--fg); font-weight: 600; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--bad); }
+  .dot.idle { background: #4b5563; }
+  .msg { font-size: 12px; line-height: 1.45; }
+  .msg.err { color: var(--bad); }
+  .msg.warn { color: var(--warn); }
+  .msg.note { color: var(--dim); }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row">
+    <input id="url" placeholder="粘贴 Google Doc 链接，或直接粘文档 ID" spellcheck="false" />
+    <button id="go">打开</button>
+    <button id="reload">重新加载</button>
+    <button id="dt">DevTools</button>
+  </div>
+
+  <div class="stats">
+    <span class="stat"><span id="netDot" class="dot idle"></span><span id="net">网络 未知</span></span>
+    <span class="stat"><span id="rtDot" class="dot idle"></span><span id="rt">实时通道 未建立</span></span>
+    <span class="stat">已加载 <b id="elapsed">—</b></span>
+    <span class="stat">节流 <b id="thr">—</b></span>
+  </div>
+
+  <div id="msg" class="msg hide"></div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id)
+  let loadedAt = null
+
+  $('go').onclick = () => window.m0.open($('url').value)
+  $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') window.m0.open($('url').value) })
+  $('reload').onclick = () => window.m0.reload()
+  $('dt').onclick = () => window.m0.devtools()
+
+  function fmt (ms) {
+    if (ms == null) return '—'
+    const s = Math.floor(ms / 1000)
+    const h = Math.floor(s / 3600)
+    const m = Math.floor((s % 3600) / 60)
+    const ss = s % 60
+    return h ? `${h}小时${m}分` : (m ? `${m}分${ss}秒` : `${ss}秒`)
+  }
+
+  window.m0.onStatus((s) => {
+    if (s.url && $('url').value.trim() === '') $('url').value = s.input || s.url
+    loadedAt = s.loadedAt
+
+    $('netDot').className = 'dot ' + (s.online ? 'ok' : 'bad')
+    $('net').textContent = s.online ? '网络 在线' : '网络 已断开'
+
+    const live = s.bindCount > 0
+    $('rtDot').className = 'dot ' + (live ? 'ok' : 'idle')
+    $('rt').textContent = live
+      ? `实时通道 已建立（${s.bindCount} 次）`
+      : '实时通道 未建立'
+
+    $('thr').textContent = s.throttling ? '默认（开）' : '已关闭'
+
+    const box = $('msg')
+    if (s.error)      { box.className = 'msg err';  box.textContent = s.error }
+    else if (s.warn)  { box.className = 'msg warn'; box.textContent = s.warn }
+    else if (s.note)  { box.className = 'msg note'; box.textContent = s.note }
+    else              { box.className = 'msg hide'; box.textContent = '' }
+  })
+
+  setInterval(() => {
+    $('elapsed').textContent = loadedAt ? fmt(Date.now() - loadedAt) : '—'
+  }, 1000)
+</script>
+</body>
+</html>

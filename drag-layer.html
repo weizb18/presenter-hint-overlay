@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+
+  /* The whole layer is a drag handle. The window is focusable only while this
+     layer is up, which is what lets the OS move it. */
+  #frame {
+    position: absolute; inset: 0;
+    border: 3px solid #34d058;
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.5) inset;
+    -webkit-app-region: drag;
+    box-sizing: border-box;
+  }
+  #hint {
+    position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+    background: #34d058; color: #05240d;
+    font: 600 12px/1 -apple-system, "PingFang SC", sans-serif;
+    padding: 6px 12px; border-radius: 999px;
+    white-space: nowrap; -webkit-app-region: drag; user-select: none;
+  }
+  #done {
+    position: absolute; right: 10px; top: 8px;
+    -webkit-app-region: no-drag;
+    background: #05240d; color: #d7ffe2;
+    border: 1px solid #34d058; border-radius: 999px;
+    font: 600 12px/1 -apple-system, "PingFang SC", sans-serif;
+    padding: 6px 12px; cursor: pointer;
+  }
+
+  /* Resizing cannot use the native path: Electron documents that transparent
+     windows are not resizable and that setting `resizable` may break
+     transparency outright. So the grip drives win.setBounds() directly. */
+  #grip {
+    position: absolute; right: 0; bottom: 0;
+    width: 26px; height: 26px;
+    -webkit-app-region: no-drag;
+    cursor: nwse-resize;
+    background:
+      linear-gradient(135deg, transparent 46%, #34d058 46%, #34d058 54%, transparent 54%),
+      linear-gradient(135deg, transparent 66%, #34d058 66%, #34d058 74%, transparent 74%);
+    border-bottom-right-radius: 8px;
+  }
+  #size {
+    position: absolute; right: 34px; bottom: 6px;
+    color: #34d058; background: rgba(5,36,13,.85);
+    font: 500 11px/1 "SF Mono", ui-monospace, monospace;
+    padding: 4px 7px; border-radius: 5px;
+    -webkit-app-region: no-drag; user-select: none;
+  }
+</style>
+</head>
+<body>
+  <div id="frame"></div>
+  <div id="hint">定位模式：拖动这个框移动，右下角拖动改大小</div>
+  <button id="done">锁定</button>
+  <div id="size">—</div>
+  <div id="grip"></div>
+
+<script>
+  const grip = document.getElementById('grip')
+  const sizeLabel = document.getElementById('size')
+
+  document.getElementById('done').onclick = () => window.overlay.repositionDone()
+
+  // Deltas are computed from screen coordinates rather than client ones,
+  // because the window is moving underneath the pointer as it resizes.
+  let origin = null
+
+  grip.addEventListener('pointerdown', (e) => {
+    e.preventDefault()
+    grip.setPointerCapture(e.pointerId)
+    origin = { x: e.screenX, y: e.screenY }
+    window.overlay.resizeStart()
+  })
+
+  grip.addEventListener('pointermove', (e) => {
+    if (!origin) return
+    window.overlay.resizeTo(e.screenX - origin.x, e.screenY - origin.y)
+  })
+
+  const end = (e) => {
+    if (!origin) return
+    origin = null
+    try { grip.releasePointerCapture(e.pointerId) } catch {}
+    window.overlay.resizeEnd()
+  }
+  grip.addEventListener('pointerup', end)
+  grip.addEventListener('pointercancel', end)
+
+  window.overlay.onSize(({ width, height }) => {
+    sizeLabel.textContent = `${width} × ${height}`
+  })
+</script>
+</body>
+</html>

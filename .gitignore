@@ -1,0 +1,18 @@
+node_modules/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local application state and logs
+overlay-config.json
+*.log
+npm-debug.log*
+
+# macOS and editor metadata
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
